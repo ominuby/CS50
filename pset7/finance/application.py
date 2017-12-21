@@ -34,7 +34,8 @@ db = SQL("sqlite:///finance.db")
 # user must be logged in order to access the given route
 @login_required
 def index():
-    return apology("TODO")
+    return render_template("Uindex.html")
+    # return apology("TODO")
 
 @app.route("/buy", methods=["GET", "POST"])
 @login_required
@@ -113,13 +114,21 @@ def logout():
 # allows users to look up the price of stocks
 def quote():
     """Get stock quote."""
-    # retrieve stock quote
-    # quote = lookup("AAPL")
+    quoted = False
+    if request.method == "POST":
+        # retrieve stock quote
+        quote = lookup(request.form.get("symbol"))
+        if quote :
+            #display stock quote, in HTML
+            return render_template("quoted.html", stock = quote)
+        else :
+            apology("Stock is invalid")
 
-    #display stock quote
+
+
     # ensure the stock is valid, or apology
-    return apology("TODO")
-
+    else:
+        return render_template("quote.html")
 @app.route("/register", methods=["GET", "POST"])
 # user can sign up for the website, implemented
 def register():
