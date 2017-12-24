@@ -43,6 +43,20 @@ def index():
 def buy():
     """Buy shares of stock."""
     # add stock to portfolio
+    if request.method == "POST":
+        # query information that user inputs
+        stock = request.form.get("symbol")
+        price = lookup(request.form.get("symbol"))
+        share = int(request.form.get("share"))
+        if price:
+            if share > 0:
+                # user's cash
+                cash = db.execute("SELECT * FROM users WHERE id = :id", id = session["user_id"] )
+            else:
+                apology("Share should be positive integer")
+        else:
+            apology("Stock is invalid")
+
         # can the user afford the stock  SELECT cash FROM users WHERE id=1
 
         # buying more of the same stock  INSERT INTO ...
@@ -51,7 +65,8 @@ def buy():
 
     # update cash
         # UPDATE users SET cash = cash - 50 WHERE id = 1
-    return apology("TODO")
+    else:
+        return render_template("buy.html")
 
 @app.route("/history")
 @login_required
