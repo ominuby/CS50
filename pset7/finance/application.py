@@ -50,28 +50,28 @@ def buy():
         if quote:
             if share > 0:
                 # user's cash
-                client = db.execute("SELECT * FROM users WHERE id = :id", id = session["user_id"] )
+                money = db.execute("SELECT cash FROM users WHERE id = :id", id = session["user_id"] )
+                print(money[0]['cash'])
                 # can the user afford the stock  SELECT cash FROM users WHERE ...
-                if client.cash - (quote["price"]*share) > 0:
+                if money[0]['cash'] - (quote["price"]*share) > 0:
                     # update information of users table
-                    db.execute("UPDATE users SET cash = :cash WHERE id = :id", cash = client.cash - (quote["price"]*share), id =session["user_id"] )
+                    db.execute("UPDATE users SET cash = :cash WHERE id = :id", cash = money[0]['cash'] - (quote["price"]*share), id = session["user_id"] )
                     # insert new deal into history table
                     db.execute("INSERT INTO history(balance,stock,share,price,id) \
                     VALUES(:balance,:stock,:share,:price,:id)",\
-                    balance = client.cash - (stock["price"]*share),\
+                    balance = money[0]['cash'] - (quote["price"]*share),\
                     stock = request.form.get("symbol"),\
                     share = request.form.get("share"),\
                     price = quote["price"], id = session["user_id"] )
+                    # buying more of the same stock  INSERT INTO ...
+                    return redirect(url_for("history"))
 
                 else:
                     apology("NO enough money!")
-
             else:
                 apology("Share should be positive integer")
         else:
             apology("Stock is invalid")
-
-
 
         # buying more of the same stock  INSERT INTO ...
 
@@ -79,8 +79,7 @@ def buy():
 
     # update cash
         # UPDATE users SET cash = cash - 50 WHERE id = 1
-    else:
-        return render_template("buy.html")
+    return render_template("buy.html")
 
 @app.route("/history")
 @login_required
@@ -177,7 +176,7 @@ def register():
         else:
 # add user to database
             # store encypted password by pwd_context.encrypt
-            result = db.execute("INSERT INTO users (username,hash) VALUES(:username, :hash)", username = request.form.get("username"), hash = pwd_context.encrypt(request.form.get("password")))
+            result = db.execute("INSERT INTO users (username,hash) VALUES(:username, :hash)", username = request.form.get("username"), hash = pwd_context.hash(request.form.get("password")))
             if not result:
                 return apology("username is already existed")
             # if not result: return apology("")
