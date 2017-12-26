@@ -45,19 +45,33 @@ def buy():
     # add stock to portfolio
     if request.method == "POST":
         # query information that user inputs
-        stock = request.form.get("symbol")
-        price = lookup(request.form.get("symbol"))
+        quote = lookup(request.form.get("symbol"))
         share = int(request.form.get("share"))
-        if price:
+        if quote:
             if share > 0:
                 # user's cash
-                cash = db.execute("SELECT * FROM users WHERE id = :id", id = session["user_id"] )
+                client = db.execute("SELECT * FROM users WHERE id = :id", id = session["user_id"] )
+                # can the user afford the stock  SELECT cash FROM users WHERE ...
+                if client.cash - (quote["price"]*share) > 0:
+                    # update information of users table
+                    db.execute("UPDATE users SET cash = :cash WHERE id = :id", cash = client.cash - (quote["price"]*share), id =session["user_id"] )
+                    # insert new deal into history table
+                    db.execute("INSERT INTO history(balance,stock,share,price,id) \
+                    VALUES(:balance,:stock,:share,:price,:id)",\
+                    balance = client.cash - (stock["price"]*share),\
+                    stock = request.form.get("symbol"),\
+                    share = request.form.get("share"),\
+                    price = quote["price"], id = session["user_id"] )
+
+                else:
+                    apology("NO enough money!")
+
             else:
                 apology("Share should be positive integer")
         else:
             apology("Stock is invalid")
 
-        # can the user afford the stock  SELECT cash FROM users WHERE id=1
+
 
         # buying more of the same stock  INSERT INTO ...
 
@@ -72,7 +86,8 @@ def buy():
 @login_required
 def history():
     """Show history of transactions."""
-    return apology("TODO")
+    histories = db.execute("SELECT * FROM history WHERE id = :id", id = session["user_id"] )
+    return render_template("history.html",histories = histories)
 
 # login, already implemented
 @app.route("/login", methods=["GET", "POST"])
