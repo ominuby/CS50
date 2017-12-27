@@ -1,0 +1,27 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Index
+{% endblock %}
+
+{% block main %}
+<!-- register.html is quite similar to login.html, but we need to add a password confirmation field so that user has to enter their password one more time -->
+    <form action="{{ url_for('index') }}" method="post">
+            <table class="table table-striped" style="width:100%" >
+　            <tr>
+            　<td>Stock</td>
+            　<td>Share</td>
+　            </tr>
+　            {%for port in portfolio%}
+　               <tr>
+            　    <td>{{port.stock}}</td>
+            　    <td>{{port.share}}</td>
+　               </tr>
+              {%endfor%}
+              <tr>
+            　<td></td>
+            　<td></td>
+　            </tr>
+            </table>
+    </form>
+{% endblock %}

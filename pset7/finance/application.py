@@ -34,7 +34,8 @@ db = SQL("sqlite:///finance.db")
 # user must be logged in order to access the given route
 @login_required
 def index():
-    return render_template("Uindex.html")
+    portfolio = db.execute("SELECT * FROM portfolio WHERE id = :id", id = session["user_id"] )
+    return render_template("index.html",portfolio = portfolio)
     # return apology("TODO")
 
 @app.route("/buy", methods=["GET", "POST"])
@@ -51,9 +52,9 @@ def buy():
             if share > 0:
                 # user's cash
                 money = db.execute("SELECT cash FROM users WHERE id = :id", id = session["user_id"] )
-                print(money[0]['cash'])
+
                 # can the user afford the stock  SELECT cash FROM users WHERE ...
-                if money[0]['cash'] - (quote["price"]*share) > 0:
+                if money[0]['cash'] > (quote["price"]*share):
                     # update information of users table
                     db.execute("UPDATE users SET cash = :cash WHERE id = :id", cash = money[0]['cash'] - (quote["price"]*share), id = session["user_id"] )
                     # insert new deal into history table
@@ -63,23 +64,32 @@ def buy():
                     stock = request.form.get("symbol"),\
                     share = request.form.get("share"),\
                     price = quote["price"], id = session["user_id"] )
-                    # buying more of the same stock  INSERT INTO ...
+
+                    share_old = db.execute("SELECT share FROM portfolio WHERE id = :id AND stock = :stock", id = session["user_id"], stock = request.form.get("symbol"))
+
+                    if not share_old:
+                        # new stock INSERT
+                        db.execute("INSERT INTO portfolio(id,stock,share) \
+                        VALUES(:id,:stock,:share)",\
+                        id = session["user_id"],\
+                        stock = request.form.get("symbol"),\
+                        share = request.form.get("share"))
+                    else:
+                        # same stock UPDATE
+                        db.execute("UPDATE portfolio SET share = :share WHERE id = :id AND stock = :stock",\
+                        share = share_old[0]["share"] + request.form.get("share"),\
+                        id = session["user_id"],\
+                        stock = request.form.get("symbol"))
                     return redirect(url_for("history"))
-
                 else:
-                    apology("NO enough money!")
+                    return apology("NO enough money!")
             else:
-                apology("Share should be positive integer")
+                return apology("Share should be positive integer")
         else:
-            apology("Stock is invalid")
+            return apology("Stock is invalid")
+    else:
+        return render_template("buy.html")
 
-        # buying more of the same stock  INSERT INTO ...
-
-        ##!!! new SQL table for
-
-    # update cash
-        # UPDATE users SET cash = cash - 50 WHERE id = 1
-    return render_template("buy.html")
 
 @app.route("/history")
 @login_required
