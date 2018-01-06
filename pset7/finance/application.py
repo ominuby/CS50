@@ -36,7 +36,6 @@ db = SQL("sqlite:///finance.db")
 def index():
     portfolio = db.execute("SELECT * FROM portfolio WHERE id = :id", id = session["user_id"] )
     return render_template("index.html",portfolio = portfolio)
-    # return apology("TODO")
 
 @app.route("/buy", methods=["GET", "POST"])
 @login_required
@@ -74,12 +73,15 @@ def buy():
                         id = session["user_id"],\
                         stock = request.form.get("symbol"),\
                         share = request.form.get("share"))
+
                     else:
                         # same stock UPDATE
-                        db.execute("UPDATE portfolio SET share = :share WHERE id = :id AND stock = :stock",\
-                        share = share_old[0]["share"] + request.form.get("share"),\
+                        db.execute("UPDATE portfolio SET share = :share, price = :price, total = :total WHERE id = :id AND stock = :stock",\
+                        share = share_old[0]["share"] + int(request.form.get("share")),\
                         id = session["user_id"],\
-                        stock = request.form.get("symbol"))
+                        stock = request.form.get("symbol"),\
+                        price = quote["price"],\
+                        total = quote["price"] * (share_old[0]["share"] + int(request.form.get("share"))))
                     return redirect(url_for("history"))
                 else:
                     return apology("NO enough money!")
@@ -201,4 +203,44 @@ def register():
 @login_required
 def sell():
     """Sell shares of stock."""
-    return apology("TODO")
+    # add stock to portfolio
+    if request.method == "POST":
+        # user really has the stock
+        money = db.execute("SELECT cash FROM users WHERE id = :id", id = session["user_id"] )
+        stock = db.execute("SELECT * FROM portfolio WHERE id = :id AND stock = :stock", id = session["user_id"], stock = request.form.get("symbol") )
+        quote = lookup(request.form.get("symbol"))
+        share = int(request.form.get("share"))
+        share_old = db.execute("SELECT share FROM portfolio WHERE id = :id AND stock = :stock", id = session["user_id"], stock = request.form.get("symbol"))
+
+        if quote:
+            if stock:
+                if not stock[0]['share'] < share:
+
+                    db.execute("UPDATE users SET cash = :cash WHERE id = :id", cash = money[0]['cash'] + (quote["price"]*share), id = session["user_id"] )
+
+                    db.execute("INSERT INTO history(balance,stock,share,price,id) \
+                    VALUES(:balance,:stock,:share,:price,:id)",\
+                    balance = money[0]['cash'] + (quote["price"]*share),\
+                    stock = request.form.get("symbol"),\
+                    share = -int(request.form.get("share")),\
+                    price = quote["price"], id = session["user_id"] )
+
+                    if stock[0]['share'] > share:
+                        db.execute("UPDATE portfolio SET share = :share, price = :price, total = :total WHERE id = :id AND stock = :stock",\
+                        share = share_old[0]["share"] - int(request.form.get("share")),\
+                        id = session["user_id"],\
+                        stock = request.form.get("symbol"),\
+                        price = quote["price"],\
+                        total = quote["price"] * (share_old[0]["share"] - int(request.form.get("share"))))
+                    elif stock[0]['share'] == share:
+                        db.execute("DELETE FROM portfolio WHERE stock = :stock",\
+                        stock = request.form.get("symbol"))
+                    return redirect(url_for("history"))
+                else:
+                    return apology("not enough share")
+            else:
+                return apology("stock isn't owned")
+        else:
+            return apology("stock is invalid")
+    else:
+        return render_template("sell.html")

@@ -11,17 +11,18 @@
 　            <tr>
             　<td>Stock</td>
             　<td>Share</td>
+            　<td>Price</td>
+            　<td>Total</td>
 　            </tr>
 　            {%for port in portfolio%}
 　               <tr>
             　    <td>{{port.stock}}</td>
             　    <td>{{port.share}}</td>
+           　     <td>{{port.price}}</td>
+           　     <td>{{port.total}}</td>
 　               </tr>
               {%endfor%}
-              <tr>
-            　<td></td>
-            　<td></td>
-　            </tr>
             </table>
+
     </form>
 {% endblock %}
